@@ -1,6 +1,32 @@
 import React from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeartCirclePlus, faInfo } from '@fortawesome/free-solid-svg-icons';
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { useParams } from 'react-router-dom';
 
 const DetailBox = ({ details }) => {
+    const { store, dispatch } = useGlobalReducer();
+    const { type, uid } = useParams();
+
+    const addToFavorites = (uid, name, type) => {
+        const currentFavorites = [...store.favorites];
+        const checkFavorite = currentFavorites.find((item) => item.name === name);
+
+        if (!checkFavorite) {
+            dispatch({
+                target: "favorites",
+                type: "add",
+                payload: {
+                    uid,
+                    name,
+                    type,
+                },
+            });
+            console.log(`Added ${uid} to favorites`);
+        } else {
+            console.log(`UID ${uid} is already in favorites`);
+        }
+    };
     if (!details) {
         return <div className="alert alert-info" role="alert">Loading details...</div>;
     }
@@ -30,6 +56,9 @@ const DetailBox = ({ details }) => {
                         <p className="card-text"><strong>URL:</strong>
                             <a href={details.url} target="_blank" rel="noopener noreferrer" className="ms-2">{details.url}</a>
                         </p>
+                        <button type="button" class="btn btn-danger" onClick={() => addToFavorites(uid, details.name, type)}>
+                            <FontAwesomeIcon icon={faHeartCirclePlus} />
+                        </button>
                     </div>
                 </div>
             </div>

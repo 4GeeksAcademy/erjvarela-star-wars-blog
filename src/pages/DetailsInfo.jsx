@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Link } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHeart, faInfo } from "@fortawesome/free-solid-svg-icons";
-import { useNavigate } from "react-router-dom";
 import DetailBox from "../components/DetailBox.jsx";
 
 const url = "https://www.swapi.tech";

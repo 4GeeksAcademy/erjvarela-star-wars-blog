@@ -1,56 +1,103 @@
 import CatalogBox from "../components/CatalogBox.jsx";
-import { useEffect, useState } from "react";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { useEffect } from "react";
 
 const url = "https://www.swapi.tech";
 
-async function fetchContent(route, setContentFunction, setNumberFunction) {
+async function fetchContent(route, page, dispatch, target) {
     try {
-        console.log(`${url}${route}`);
-        const response = await fetch(`${url}${route}`);
+        console.log(`Fetching: ${url}${route}${page}`);
+        const response = await fetch(`${url}${route}${page}`);
         if (!response.ok) {
             throw new Error("Network response was not ok");
         }
         const data = await response.json();
-        generateNumberArray(data.total_pages, setNumberFunction);
-        setContentFunction(data.results);
+
+        // Validar la estructura de los datos
+        if (!data.results || !Array.isArray(data.results)) {
+            throw new Error("Invalid data structure: results is not an array");
+        }
+
+        // Actualizar el store
+        dispatch({
+            target,
+            type: "set",
+            payload: {
+                content: data.results,
+                page: page,
+                totalPages: data.total_pages,
+            },
+        });
     } catch (error) {
         console.error(`Failed to fetch ${route}:`, error);
     }
 }
 
-function generateNumberArray(n, setNumberFunction) {
-    const arr = [];
-    for (let i = 1; i <= n; i++) {
-        arr.push(i);
+function generatePageNumbers(totalPages) {
+    let array = [];
+    for (let i = 1; i <= totalPages; i++) {
+        array.push(i);
     }
-    setNumberFunction(arr);
+    return array;
 }
 
 export const Home = () => {
-    const [people, setPeople] = useState([]);
-    const [numberPeople, setNumberPeople] = useState([]);
-    const [pagePeople, setPagePeople] = useState(1);
-
-    const [vehicles, setVehicles] = useState([]);
-    const [numberVehicles, setNumberVehicles] = useState([]);
-    const [pageVehicles, setPageVehicles] = useState(1);
-
-	const [planets, setPlanets] = useState([]);
-	const [numberPlanets, setNumberPlanets] = useState([]);
-	const [pagePlanets, setPagePlanets] = useState(1);
+    const { store, dispatch } = useGlobalReducer();
 
     useEffect(() => {
-        fetchContent(`/api/people?page=${pagePeople}`, setPeople, setNumberPeople);
-        fetchContent(`/api/vehicles?page=${pageVehicles}`, setVehicles, setNumberVehicles);
-		fetchContent(`/api/planets?page=${pagePlanets}`, setPlanets, setNumberPlanets);
-        console.log(pagePeople, pageVehicles);
-    }, [pagePeople, pageVehicles, pagePlanets]);
+        // Verificar si los datos ya están en el store o si la página cambió
+        if (!store.people.content || store.people.content.length === 0 || store.people.page !== 1) {
+            fetchContent(`/api/people?page=`, store.people.page, dispatch, "people");
+        }
+        if (!store.vehicles.content || store.vehicles.content.length === 0 || store.vehicles.page !== 1) {
+            fetchContent(`/api/vehicles?page=`, store.vehicles.page, dispatch, "vehicles");
+        }
+        if (!store.planets.content || store.planets.content.length === 0 || store.planets.page !== 1) {
+            fetchContent(`/api/planets?page=`, store.planets.page, dispatch, "planets");
+        }
+    }, [store.people, store.vehicles, store.planets]);
 
     return (
         <>
-            <CatalogBox title="People" numberOfContent={numberPeople} contents={people} setPage={setPagePeople} contentType="people"/>
-            <CatalogBox title="Vehicles" numberOfContent={numberVehicles} contents={vehicles} setPage={setPageVehicles} contentType="vehicles"/>
-			<CatalogBox title="Planets" numberOfContent={numberPlanets} contents={planets} setPage={setPagePlanets} contentType="planets"/>
+            <CatalogBox
+                title="People"
+                numberOfContent={Array.from({ length: store.people.totalPages || 1 }, (_, i) => i + 1)}
+                contents={store.people.content || []}
+                setPage={(page) =>
+                    dispatch({
+                        target: "people",
+                        type: "set",
+                        payload: { ...store.people, page },
+                    })
+                }
+                contentType="people"
+            />
+            <CatalogBox
+                title="Vehicles"
+                numberOfContent={Array.from({ length: store.vehicles.totalPages || 1 }, (_, i) => i + 1)}
+                contents={store.vehicles.content || []}
+                setPage={(page) =>
+                    dispatch({
+                        target: "vehicles",
+                        type: "set",
+                        payload: { ...store.vehicles, page },
+                    })
+                }
+                contentType="vehicles"
+            />
+            <CatalogBox
+                title="Planets"
+                numberOfContent={Array.from({ length: store.planets.totalPages || 1 }, (_, i) => i + 1)}
+                contents={store.planets.content || []} 
+                setPage={(page) =>
+                    dispatch({
+                        target: "planets",
+                        type: "set",
+                        payload: { ...store.planets, page },
+                    })
+                }
+                contentType="planets"
+            />
         </>
     );
 };
